@@ -49,8 +49,9 @@ The API Postman Collection is available in the /postman-collection/ directory.
 
 ## Dependencies 📦
 
-- [gorilla/mux](https://github.com/gorilla/mux): HTTP request router
-- [pq](https://github.com/lib/pq): PostgreSQL driver for Go
+- [gorilla/mux](https://github.com/gorilla/mux) v1.8.1: HTTP request router
+- [joho/godotenv](https://github.com/joho/godotenv) v1.5.1: GoDotEnv for Go (loads environment variables from a .env file)
+- [lib/pq](https://github.com/lib/pq) v1.10.9: PostgreSQL driver for Go (indirect)
 
 ## Closing Notes📝
 
