@@ -1,0 +1,156 @@
+{
+	"info": {
+		"_postman_id": "1be282a8-16cd-430b-95b4-dc3bb7a0702d",
+		"name": "Go-Postgre",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29831214"
+	},
+	"item": [
+		{
+			"name": "createStock",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Instagram\",\r\n    \"price\": 123,\r\n    \"company\": \"Meta\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{server}}/api/stock",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"stock"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getStocks",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{server}}/api/stock",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"stock"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getStockById",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{server}}/api/stock/{{ID}}",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"stock",
+						"{{ID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "updateStockById",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Instagram123\",\r\n    \"price\": 123123,\r\n    \"company\": \"Meta123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{server}}/api/stock/{{ID}}",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"stock",
+						"{{ID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "deleteStockById",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{server}}/api/stock/{{ID}}",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"api",
+						"stock",
+						"{{ID}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"if (pm.request.method === \"POST\" && pm.response.code === 201) {",
+					"    var jsonData = pm.response.json();",
+					"    pm.collectionVariables.set(\"ID\", jsonData.stockid);",
+					"}",
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "server",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "ID",
+			"value": ""
+		}
+	]
+}
