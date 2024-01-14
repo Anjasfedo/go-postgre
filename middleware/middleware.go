@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
@@ -14,25 +15,27 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Response struct represents the structure for API responses
 type Response struct {
-	ID      int64  `json:"id,omitempty"`
+	ID      int64  `json:"stockid,omitempty"`
 	Message string `json:"message,omitempty"`
 }
 
+// CreateConnection function establishes a connection to the PostgreSQL database
 func CreateConnection() *sql.DB {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal("Error Loading .env")
+		log.Fatalf("Error loading .env: %v", err)
 	}
 
 	db, err := sql.Open("postgres", os.Getenv("POSTGRES_URL"))
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error opening database: %v", err)
 	}
 
 	err = db.Ping()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error pinging database: %v", err)
 	}
 
 	fmt.Println("Connected to Postgres")
@@ -40,37 +43,52 @@ func CreateConnection() *sql.DB {
 	return db
 }
 
+// GetStocks handles the HTTP GET request to retrieve all stocks
 func GetStocks(w http.ResponseWriter, r *http.Request) {
 	stocks, err := getHandler()
 	if err != nil {
-		log.Fatalf("Unable to Get Stocks. %v", err)
+		http.Error(w, "Unable to get stocks", http.StatusInternalServerError)
+		log.Printf("Unable to Get Stocks. %v", err)
+		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(stocks)
 }
 
+// GetStockById handles the HTTP GET request to retrieve a stock by ID
 func GetStockById(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	ID, err := strconv.Atoi(params["id"])
 	if err != nil {
-		log.Fatalf("Can't Convert the String into Int. %v", err)
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		log.Printf("Can't Convert the String into Int. %v", err)
+		return
 	}
 
 	stock, err := getByIdHandler(int64(ID))
 	if err != nil {
-		log.Fatalf("Unable to Get Stock. %v", err)
+		http.Error(w, "Unable to get stock", http.StatusInternalServerError)
+		log.Printf("Unable to Get Stock. %v", err)
+		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(stock)
 }
 
+// CreateStock handles the HTTP POST request to create a new stock
 func CreateStock(w http.ResponseWriter, r *http.Request) {
 	var stock models.Stock
 
 	err := json.NewDecoder(r.Body).Decode(&stock)
 	if err != nil {
-		log.Fatalf("Can't Decode the Request Body. %v", err)
+		http.Error(w, "Can't decode the request body", http.StatusBadRequest)
+		log.Printf("Can't Decode the Request Body. %v", err)
+		return
 	}
 
 	createdID := createHandler(stock)
@@ -80,23 +98,29 @@ func CreateStock(w http.ResponseWriter, r *http.Request) {
 		Message: "Stock Created",
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(res)
-
 }
 
+// UpdateStockById handles the HTTP PUT request to update a stock by ID
 func UpdateStockById(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	ID, err := strconv.Atoi(params["id"])
 	if err != nil {
-		log.Fatalf("Can't Connvert the String into Int. %v", err)
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		log.Printf("Can't Convert the String into Int. %v", err)
+		return
 	}
 
 	var stock models.Stock
 
 	err = json.NewDecoder(r.Body).Decode(&stock)
 	if err != nil {
-		log.Fatalf("Can't Decode the Request Body. %v", err)
+		http.Error(w, "Can't decode the request body", http.StatusBadRequest)
+		log.Printf("Can't Decode the Request Body. %v", err)
+		return
 	}
 
 	updatedStock := updateByIdHandler(int64(ID), stock)
@@ -108,15 +132,20 @@ func UpdateStockById(w http.ResponseWriter, r *http.Request) {
 		Message: msg,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(res)
 }
 
+// DeleteStockById handles the HTTP DELETE request to delete a stock by ID
 func DeleteStockById(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	ID, err := strconv.Atoi(params["id"])
 	if err != nil {
-		log.Fatalf("Can't Convert the String into Int. %v", err)
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		log.Printf("Can't Convert the String into Int. %v", err)
+		return
 	}
 
 	deletedStock := deleteByIdHandler(int64(ID))
@@ -128,9 +157,12 @@ func DeleteStockById(w http.ResponseWriter, r *http.Request) {
 		Message: msg,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(res)
 }
 
+// getHandler retrieves all stocks from the database
 func getHandler() ([]models.Stock, error) {
 	db := CreateConnection()
 	defer db.Close()
@@ -159,6 +191,7 @@ func getHandler() ([]models.Stock, error) {
 	return stocks, err
 }
 
+// getByIdHandler retrieves a stock by ID from the database
 func getByIdHandler(ID int64) (models.Stock, error) {
 	db := CreateConnection()
 	defer db.Close()
@@ -167,23 +200,19 @@ func getByIdHandler(ID int64) (models.Stock, error) {
 
 	sqlStatement := `SELECT * FROM stocks WHERE stockid=$1`
 
-	row := db.QueryRow(sqlStatement, ID)
+	err := db.QueryRow(sqlStatement, ID).Scan(&stock.StockID, &stock.Name, &stock.Price, &stock.Company)
 
-	err := row.Scan(&stock.Name, &stock.Price, &stock.Company)
-
-	switch err {
-	case sql.ErrNoRows:
+	switch {
+	case err == sql.ErrNoRows:
 		fmt.Println("No Rows Return!")
-		return stock, nil
-	case nil:
-		return stock, nil
-	default:
+	case err != nil:
 		log.Fatalf("Can't Scan the Row. %v", err)
 	}
 
 	return stock, err
 }
 
+// createHandler creates a new stock in the database
 func createHandler(stock models.Stock) int64 {
 	db := CreateConnection()
 	defer db.Close()
@@ -201,6 +230,7 @@ func createHandler(stock models.Stock) int64 {
 	return ID
 }
 
+// updateByIdHandler updates a stock by ID in the database
 func updateByIdHandler(ID int64, stock models.Stock) int64 {
 	db := CreateConnection()
 	defer db.Close()
@@ -222,6 +252,7 @@ func updateByIdHandler(ID int64, stock models.Stock) int64 {
 	return rowAffected
 }
 
+// deleteByIdHandler deletes a stock by ID from the database
 func deleteByIdHandler(ID int64) int64 {
 	db := CreateConnection()
 	defer db.Close()
